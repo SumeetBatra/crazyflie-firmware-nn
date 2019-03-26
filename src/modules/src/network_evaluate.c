@@ -1,6 +1,6 @@
 
 #include "network_evaluate.h"
-#include "lstm_params.h"
+#include "gru_params.h"
 
 
 
@@ -11,7 +11,7 @@ float linear(float num) {
 
 
 float sigmoid(float num) {
-	return 1 / (1 + exp(-num));
+	return 1 / (1 + expf(-num));
 }
 
 
@@ -28,8 +28,6 @@ void clear_intermedia_results() {
 	for (int i = 0; i < num_unit; i++) {
 		intermedia_result_1[i] = 0;
 		intermedia_result_2[i] = 0;
-		intermedia_result_3[i] = 0;
-		intermedia_result_4[i] = 0;
 	}
 }
 
@@ -53,98 +51,78 @@ void vec_mul_matrix(float *result, const float *vec, const float *weights, const
 	}
 }
 
-// =================== Incoming gate ====================
-// i(t) = sigmoid(x(t) @ W_xi + h(t-1) @ W_hi + b_i)
-void compute_incoming_gate(const float *state_array) {
+/*
+The gated reccurent unit follows this mechanism:
+Reset gate:        r(t) = sigmoid(x(t) @ W_xr + h(t-1) @ W_hr + b_r)
+Update gate:       u(t) = sigmoid(x(t) @ W_xu + h(t-1) @ W_hu + b_u)
+Cell gate:         c(t) = tanh(x(t) @ W_xc + r(t) * (h(t-1) @ W_hc) + b_c)
+New hidden state:  h(t) = (1 - u(t)) * h(t-1) + u(t) * c(t)
+*/
+
+
+// =================== Reset gate ====================
+// r(t) = sigmoid(x(t) @ W_xr + h(t-1) @ W_hr + b_r)
+void compute_reset_gate(const float *state_array) {
 	// x(t) @ W_xi
-	vec_mul_matrix(intermedia_result_1, state_array, W_xi[0], input_dim, num_unit);
+	vec_mul_matrix(intermedia_result_1, state_array, W_xr[0], input_dim, num_unit);
 	// h(t-1) @ W_hi 
-	vec_mul_matrix(intermedia_result_2, hidden_state, W_hi[0], num_unit, num_unit);
+	vec_mul_matrix(intermedia_result_2, hidden_state, W_hr[0], num_unit, num_unit);
 	// add bias and non-linearity
 	for (int i = 0; i < num_unit; i++) {
-		incoming_gate_t[i] = sigmoid(intermedia_result_1[i] + intermedia_result_2[i] + b_i[i]);
+		reset_gate_t[i] = sigmoid(intermedia_result_1[i] + intermedia_result_2[i] + b_r[i]);
 	}
 	clear_intermedia_results();
 }
 
-// ==================== Forget gate ======================
-// f(t) = sigmoid(x(t) @ W_xf + h(t-1) @ W_hf + b_f + forget_bias)
-const static float forget_bias = 1.0;
-void compute_forget_gate(const float *state_array) {
+// ==================== Update gate ======================
+// u(t) = sigmoid(x(t) @ W_xu + h(t-1) @ W_hu + b_u)
+void compute_update_gate(const float *state_array) {
 	// x(t) @ W_xf
-	vec_mul_matrix(intermedia_result_1, state_array, W_xf[0], input_dim, num_unit);
+	vec_mul_matrix(intermedia_result_1, state_array, W_xu[0], input_dim, num_unit);
 	// h(t-1) @ W_hi 
-	vec_mul_matrix(intermedia_result_2, hidden_state, W_hf[0], num_unit, num_unit);
+	vec_mul_matrix(intermedia_result_2, hidden_state, W_hu[0], num_unit, num_unit);
 	// add bias and non-linearity
 	for (int i = 0; i < num_unit; i++) {
-		forget_gate_t[i] = sigmoid(intermedia_result_1[i] + intermedia_result_2[i] + b_f[i] + forget_bias);
+		update_gate_t[i] = sigmoid(intermedia_result_1[i] + intermedia_result_2[i] + b_u[i]);
 	}
 	clear_intermedia_results();
 }
 
 // ==================== new cell state ========================
-// c(t) = f(t) * c(t - 1) + i(t) * tanh(x(t) @ W_xc + h(t-1) @ W_hc + b_c)
+// c(t) = tanh(x(t) @ W_xc + r(t) * (h(t-1) @ W_hc) + b_c)
 void compute_new_cell_state(const float *state_array) {
-	// f(t) * c(t-1), element-wise multiplication
-	for (int i = 0; i < num_unit; i++) {
-		intermedia_result_1[i] = forget_gate_t[i] * cell_state[i];
-	}
 	// x(t) @ W_xc
-	vec_mul_matrix(intermedia_result_2, state_array, W_xc[0], input_dim, num_unit);
+	vec_mul_matrix(intermedia_result_1, state_array, W_xc[0], input_dim, num_unit);
 	// h(t-1) @ W_hc
-	vec_mul_matrix(intermedia_result_3, hidden_state, W_hc[0], num_unit, num_unit);
-	// tanh(x(t) @ W_xc + h(t-1) @ W_hc + b_c)
+	vec_mul_matrix(intermedia_result_2, hidden_state, W_hc[0], num_unit, num_unit);
+	// r(t) * (h(t-1) @ W_hc)
 	for (int i = 0; i < num_unit; i++) {
-		intermedia_result_4[i] = tanhf(intermedia_result_2[i] + intermedia_result_3[i] + b_c[i]);
+		intermedia_result_2[i] = intermedia_result_2[i] * reset_gate_t[i];
 	}
-	// i(t) * tanh(x(t) @ W_xc + h(t-1) @ W_hc + b_c)
+	// tanh(x(t) @ W_xc + r(t) * (h(t-1) @ W_hc) + b_c)
 	for (int i = 0; i < num_unit; i++) {
-		intermedia_result_2[i] = incoming_gate_t[i] * intermedia_result_4[i];
-	}
-	// f(t) * c(t - 1) + i(t) * tanh(x(t) @ W_xc + h(t-1) @ W_hc + b_c)
-	for (int i = 0; i < num_unit; i++) {
-		cell_state[i] = intermedia_result_1[i] + intermedia_result_2[i];
+		cell_state_t[i] = tanhf(intermedia_result_1[i] + intermedia_result_2[i] + b_c[i]);
 	}
 	clear_intermedia_results();
 }
 
-// ===================== Out gate =======================
-// o(t) = sigmoid(x(t) @ W_xo + h(t-1) @ W_ho + b_o)
-void compute_out_gate(const float *state_array) {
-	// x(t) @ W_xo
-	vec_mul_matrix(intermedia_result_1, state_array, W_xo[0], input_dim, num_unit);
-	// h(t-1) @ W_ho
-	vec_mul_matrix(intermedia_result_2, hidden_state, W_ho[0], num_unit, num_unit);
-	// add bias and non-linearity
-	for (int i = 0; i < num_unit; i++) {
-		out_gate_t[i] = sigmoid(intermedia_result_1[i] + intermedia_result_2[i] + b_o[i]);
-	}
-	clear_intermedia_results();	
-}
-
 // ================= new hidden state =====================
-// h(t) = o(t) * tanh(c(t))
+// h(t) = (1 - u(t)) * h(t-1) + u(t) * c(t)
 void compute_new_hidden_state() {
-	// tanh(c(t))
-	for(int i = 0; i < num_unit; i++) {
-		intermedia_result_1[i] = tanhf(cell_state[i]);
-	}
-	// o(t) * tanh(c(t))
+	// (1 - u(t)) * h(t-1) + u(t) * c(t)
 	for (int i = 0; i < num_unit; i++) {
-		hidden_state[i] = out_gate_t[i] * intermedia_result_1[i];
+		hidden_state[i] = (1 - update_gate_t[i]) * hidden_state[i] + update_gate_t[i] * cell_state_t[i];
 	}
 	clear_intermedia_results();
 }
 
 void networkEvaluate(struct control_t_n *control_n, const float *state_array) {
 
-	compute_incoming_gate(state_array);
+	compute_reset_gate(state_array);
 
-	compute_forget_gate(state_array);
+	compute_update_gate(state_array);
 
 	compute_new_cell_state(state_array);
-
-	compute_out_gate(state_array);
 
 	compute_new_hidden_state();
 
