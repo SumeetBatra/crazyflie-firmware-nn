@@ -11,7 +11,7 @@ float linear(float num) {
 
 
 float sigmoid(float num) {
-	return 1 / (1 + exp(-num));
+	return 1.0f / (1.0f + expf(-num));
 }
 
 
