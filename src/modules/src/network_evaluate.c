@@ -24,6 +24,7 @@ float relu(float num) {
 	}
 }
 
+
 void clear_intermedia_results() {
 	for (int i = 0; i < num_unit; i++) {
 		intermedia_result_1[i] = 0;
