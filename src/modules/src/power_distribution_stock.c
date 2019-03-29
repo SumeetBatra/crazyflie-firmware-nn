@@ -71,7 +71,6 @@ void powerStop()
   motorsSetRatio(MOTOR_M4, 0);
 }
 
-
 void powerDistribution(const control_t *control)
 {
   #ifdef QUAD_FORMATION_X

@@ -326,12 +326,6 @@ static void stabilizerTask(void* param)
     //     error_dist = 0;
     //   }
     // }
-
-    if (   usddeckLoggingEnabled()
-        && usddeckLoggingMode() == usddeckLoggingMode_SynchronousStabilizer
-        && RATE_DO_EXECUTE(usddeckFrequency(), tick)) {
-      usddeckTriggerLogging();
-      }
     }
     calcSensorToOutputLatency(&sensorData);
     tick++;
@@ -651,9 +645,9 @@ LOG_ADD(LOG_FLOAT, vx, &state.velocity.x)
 LOG_ADD(LOG_FLOAT, vy, &state.velocity.y)
 LOG_ADD(LOG_FLOAT, vz, &state.velocity.z)
 
-// LOG_ADD(LOG_FLOAT, ax, &state.acc.x)
-// LOG_ADD(LOG_FLOAT, ay, &state.acc.y)
-// LOG_ADD(LOG_FLOAT, az, &state.acc.z)
+LOG_ADD(LOG_FLOAT, ax, &state.acc.x)
+LOG_ADD(LOG_FLOAT, ay, &state.acc.y)
+LOG_ADD(LOG_FLOAT, az, &state.acc.z)
 
 LOG_ADD(LOG_FLOAT, roll, &state.attitude.roll)
 LOG_ADD(LOG_FLOAT, pitch, &state.attitude.pitch)
@@ -663,7 +657,6 @@ LOG_ADD(LOG_FLOAT, qx, &state.attitudeQuaternion.x)
 LOG_ADD(LOG_FLOAT, qy, &state.attitudeQuaternion.y)
 LOG_ADD(LOG_FLOAT, qz, &state.attitudeQuaternion.z)
 LOG_ADD(LOG_FLOAT, qw, &state.attitudeQuaternion.w)
-
 LOG_GROUP_STOP(stateEstimate)
 
 LOG_GROUP_START(stateCompressed)
