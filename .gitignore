@@ -13,7 +13,10 @@ version.c
 tags
 
 /cf2.*
-/cf1.*
+/tag.*
 *.gch
 
 /generated-test/**
+**/__pycache__/**
+
+current_platform.mk

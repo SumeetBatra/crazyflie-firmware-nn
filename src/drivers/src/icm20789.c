@@ -590,9 +590,9 @@ static bool icm20789BaroReadID(uint8_t * whoami)
   // Read ID of ICC-41250 (=> 0x00,C8)
   dataWrite[0] = 0xEF;
   dataWrite[1] = 0xC8;
-  status = i2cdevWriteNew(I2Cx, BARO_I2C_ADDR, 2, (uint8_t *) dataWrite);
+  status = i2cdevWrite(I2Cx, BARO_I2C_ADDR, 2, (uint8_t *) dataWrite);
 
-  status = i2cdevReadNew(I2Cx, BARO_I2C_ADDR, 3, (uint8_t *) dataRead);
+  status = i2cdevRead(I2Cx, BARO_I2C_ADDR, 3, (uint8_t *) dataRead);
   if (!status)
   {
     DEBUG_PRINT("Read id from i2c [FAILED]\n");
@@ -620,7 +620,7 @@ static bool icm20789BaroReadOTP(int *out)
   dataWrite[2] = 0x00;
   dataWrite[3] = 0x66;
   dataWrite[4] = 0x9C;
-  status = i2cdevWriteNew(I2Cx, BARO_I2C_ADDR, 5, (uint8_t *) dataWrite);
+  status = i2cdevWrite(I2Cx, BARO_I2C_ADDR, 5, (uint8_t *) dataWrite);
 //  DEBUG_PRINT("Read OTP %d \r\n",status);
 
   // Read OTP values
@@ -628,10 +628,10 @@ static bool icm20789BaroReadOTP(int *out)
   {
     dataWrite[0] = 0xC7;
     dataWrite[1] = 0xF7;
-    status = i2cdevWriteNew(I2Cx, BARO_I2C_ADDR, 2, (uint8_t *) dataWrite);
+    status = i2cdevWrite(I2Cx, BARO_I2C_ADDR, 2, (uint8_t *) dataWrite);
 //    DEBUG_PRINT("Read OTP %d \r\n",status);
 
-    status = i2cdevReadNew(I2Cx, BARO_I2C_ADDR, 3, (uint8_t *) dataRead);
+    status = i2cdevRead(I2Cx, BARO_I2C_ADDR, 3, (uint8_t *) dataRead);
 //    DEBUG_PRINT("Read OTP %d \r\n",status);
     out[i] = dataRead[0] << 8 | dataRead[1];
   }
@@ -683,7 +683,7 @@ bool icm20789BaroStartMeasurement(void)
     // Send Measurement Command
     dataWrite[0] = 0x50; // Read P First (Mode3)
     dataWrite[1] = 0x59;
-    status = i2cdevWriteNew(I2Cx, BARO_I2C_ADDR, 2, (uint8_t *)dataWrite);
+    status = i2cdevWrite(I2Cx, BARO_I2C_ADDR, 2, (uint8_t *)dataWrite);
 
   return status;
 }
@@ -697,7 +697,7 @@ static bool icm20789BaroReadRawPressureTemp(int *pressure, int *temp)
 
     do {
         // Read Data by polling
-        status = i2cdevReadNew(I2Cx, BARO_I2C_ADDR, 9, (uint8_t *)dataRead);
+        status = i2cdevRead(I2Cx, BARO_I2C_ADDR, 9, (uint8_t *)dataRead);
         if (status)
         {
             break;
