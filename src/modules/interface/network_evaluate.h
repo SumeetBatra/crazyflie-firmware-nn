@@ -16,4 +16,17 @@ typedef struct control_t_n {
 
 void networkEvaluate(control_t_n *control_n, float *state_array);
 
+struct networkWeights
+{
+	float layer_0_weight[18][64];
+	float layer_1_weight[64][64];
+	float layer_2_weight[64][4];
+	float layer_0_bias[64];
+	float layer_1_bias[64];
+	float layer_2_bias[4];
+} __attribute__((packed));
+
+extern struct networkWeights nn_weights;
+
+
 #endif
