@@ -216,7 +216,7 @@ void createInfoResponse(CRTPPacket* p, uint8_t memId)
       createInfoResponseBody(p, MEM_TYPE_LOCO2, MEM_LOCO_ANCHOR_BASE + MEM_LOCO_ANCHOR_PAGE_SIZE * 256, noData);
       break;
     case NN_ID:
-      createInfoResponseBody(p, MEM_TYPE_NN, sizeof(nn_weights), noData);
+      createInfoResponseBody(p, MEM_TYPE_NN, sizeof(nn_desc), noData);
       break;
     default:
       if (owGetinfo(memId - OW_FIRST_ID, &serialNbr))
@@ -296,8 +296,8 @@ void memReadProcess()
 
     case NN_ID:
       {
-        if (memAddr + readLen <= sizeof(nn_weights) &&
-            memcpy(&p.data[6], ((uint8_t*)&nn_weights) + memAddr, readLen)) {
+        if (memAddr + readLen <= sizeof(nn_desc) &&
+            memcpy(&p.data[6], ((uint8_t*)&nn_desc) + memAddr, readLen)) {
           status = STATUS_OK;
         } else {
           status = EIO;
@@ -517,8 +517,8 @@ void memWriteProcess()
 
     case NN_ID:
       {
-        if ((memAddr + writeLen) <= sizeof(nn_weights)) {
-          memcpy(((uint8_t*)&nn_weights) + memAddr, &p.data[5], writeLen);
+        if ((memAddr + writeLen) <= sizeof(nn_desc)) {
+          memcpy(((uint8_t*)&nn_desc) + memAddr, &p.data[5], writeLen);
           status = STATUS_OK;
         } else {
           status = EIO;
