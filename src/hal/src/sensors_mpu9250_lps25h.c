@@ -898,24 +898,24 @@ static void sensorsAccAlignToGravity(Axis3f* in, Axis3f* out)
 
 void sensorsMpu9250Lps25hSetAccMode(accModes accMode)
 {
-  switch (accMode)
-  {
-    case ACC_MODE_PROPTEST:
-      mpu6500SetAccelDLPF(MPU6500_ACCEL_DLPF_BW_460);
-      for (uint8_t i = 0; i < 3; i++)
-      {
-        lpf2pInit(&accLpf[i],  1000, 500);
-      }
-      break;
-    case ACC_MODE_FLIGHT:
-    default:
-      mpu6500SetAccelDLPF(MPU6500_ACCEL_DLPF_BW_41);
-      for (uint8_t i = 0; i < 3; i++)
-      {
-        lpf2pInit(&accLpf[i],  1000, ACCEL_LPF_CUTOFF_FREQ);
-      }
-      break;
-  }
+  // switch (accMode)
+  // {
+  //   case ACC_MODE_PROPTEST:
+  //     mpu6500SetAccelDLPF(MPU6500_ACCEL_DLPF_BW_460);
+  //     for (uint8_t i = 0; i < 3; i++)
+  //     {
+  //       lpf2pInit(&accLpf[i],  1000, 500);
+  //     }
+  //     break;
+  //   case ACC_MODE_FLIGHT:
+  //   default:
+  //     mpu6500SetAccelDLPF(MPU6500_ACCEL_DLPF_BW_41);
+  //     for (uint8_t i = 0; i < 3; i++)
+  //     {
+  //       lpf2pInit(&accLpf[i],  1000, ACCEL_LPF_CUTOFF_FREQ);
+  //     }
+  //     break;
+  // }
 }
 
 static void applyAxis3fLpf(lpf2pData *data, Axis3f* in)

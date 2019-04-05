@@ -78,7 +78,7 @@ enum networkType
 	NetworkTypeGRU    = 2,
 };
 
-struct networkDescriptions
+struct networkDescription
 {
 	uint8_t networkType; // one of enum networkType
 	union
@@ -89,7 +89,7 @@ struct networkDescriptions
 	};
 } __attribute__((packed));
 
-extern struct networkDescriptions nn_desc;
+extern struct networkDescription nn_desc;
 
 
 #endif

@@ -1,6 +1,6 @@
 #include "network_evaluate.h"
 
-struct networkDescriptions nn_desc;
+struct networkDescription nn_desc;
 
 
 /////////////////////////////////////////////////////////////////////
