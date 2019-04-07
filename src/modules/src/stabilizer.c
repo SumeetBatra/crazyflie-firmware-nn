@@ -48,6 +48,8 @@
 
 #include "usddeck.h"
 
+#include "quatcompress.h"
+
 static bool isInit;
 static bool emergencyStop = false;
 static int emergencyStopTimeout = EMERGENCY_STOP_TIMEOUT_DISABLED;
@@ -74,7 +76,85 @@ struct vec point2vec(point_t p)
 static StateEstimatorType estimatorType;
 static ControllerType controllerType;
 
+static struct {
+  // position - mm
+  int16_t x;
+  int16_t y;
+  int16_t z;
+  // velocity - mm / sec
+  int16_t vx;
+  int16_t vy;
+  int16_t vz;
+  // acceleration - mm / sec^2
+  int16_t ax;
+  int16_t ay;
+  int16_t az;
+  // compressed quaternion, see quatcompress.h
+  int32_t quat;
+  // angular velocity - milliradians / sec
+  int16_t rateRoll;
+  int16_t ratePitch;
+  int16_t rateYaw;
+} stateCompressed;
+
+static struct {
+  // position - mm
+  int16_t x;
+  int16_t y;
+  int16_t z;
+  // velocity - mm / sec
+  int16_t vx;
+  int16_t vy;
+  int16_t vz;
+  // acceleration - mm / sec^2
+  int16_t ax;
+  int16_t ay;
+  int16_t az;
+} setpointCompressed;
+
 static void stabilizerTask(void* param);
+
+static void compressState()
+{
+  stateCompressed.x = state.position.x * 1000.0f;
+  stateCompressed.y = state.position.y * 1000.0f;
+  stateCompressed.z = state.position.z * 1000.0f;
+
+  stateCompressed.vx = state.velocity.x * 1000.0f;
+  stateCompressed.vy = state.velocity.y * 1000.0f;
+  stateCompressed.vz = state.velocity.z * 1000.0f;
+
+  stateCompressed.ax = state.acc.x * 1000.0f;
+  stateCompressed.ay = state.acc.y * 1000.0f;
+  stateCompressed.az = state.acc.z * 1000.0f;
+
+  float const q[4] = {
+    state.attitudeQuaternion.x,
+    state.attitudeQuaternion.y,
+    state.attitudeQuaternion.z,
+    state.attitudeQuaternion.w};
+  stateCompressed.quat = quatcompress(q);
+
+  float const deg2millirad = ((float)M_PI * 1000.0f) / 180.0f;
+  stateCompressed.rateRoll = sensorData.gyro.x * deg2millirad;
+  stateCompressed.ratePitch = -sensorData.gyro.y * deg2millirad;
+  stateCompressed.rateYaw = sensorData.gyro.z * deg2millirad;
+}
+
+static void compressSetpoint()
+{
+  setpointCompressed.x = setpoint.position.x * 1000.0f;
+  setpointCompressed.y = setpoint.position.y * 1000.0f;
+  setpointCompressed.z = setpoint.position.z * 1000.0f;
+
+  setpointCompressed.vx = setpoint.velocity.x * 1000.0f;
+  setpointCompressed.vy = setpoint.velocity.y * 1000.0f;
+  setpointCompressed.vz = setpoint.velocity.z * 1000.0f;
+
+  setpointCompressed.ax = setpoint.acceleration.x * 1000.0f;
+  setpointCompressed.ay = setpoint.acceleration.y * 1000.0f;
+  setpointCompressed.az = setpoint.acceleration.z * 1000.0f;
+}
 
 void stabilizerInit(StateEstimatorType estimator)
 {
@@ -165,8 +245,10 @@ static void stabilizerTask(void* param)
     getExtPosition(&state);
     control.enableDirectThrust = false;
     stateEstimator(&state, &sensorData, &control, tick);
+    compressState();
 
     commanderGetSetpoint(&setpoint, &state);
+    compressSetpoint();
 
     // sitAwUpdateSetpoint(&setpoint, &sensorData, &state);
 
@@ -258,6 +340,20 @@ LOG_ADD(LOG_FLOAT, pitchRate, &setpoint.attitudeRate.pitch)
 LOG_ADD(LOG_FLOAT, yawRate, &setpoint.attitudeRate.yaw)
 LOG_GROUP_STOP(ctrltarget)
 
+LOG_GROUP_START(ctrltargetZ)
+LOG_ADD(LOG_INT16, x, &setpointCompressed.x)   // position - mm
+LOG_ADD(LOG_INT16, y, &setpointCompressed.y)
+LOG_ADD(LOG_INT16, z, &setpointCompressed.z)
+
+LOG_ADD(LOG_INT16, vx, &setpointCompressed.vx) // velocity - mm / sec
+LOG_ADD(LOG_INT16, vy, &setpointCompressed.vy)
+LOG_ADD(LOG_INT16, vz, &setpointCompressed.vz)
+
+LOG_ADD(LOG_INT16, ax, &setpointCompressed.ax) // acceleration - mm / sec^2
+LOG_ADD(LOG_INT16, ay, &setpointCompressed.ay)
+LOG_ADD(LOG_INT16, az, &setpointCompressed.az)
+LOG_GROUP_STOP(ctrltargetZ)
+
 LOG_GROUP_START(stabilizer)
 LOG_ADD(LOG_FLOAT, roll, &state.attitude.roll)
 LOG_ADD(LOG_FLOAT, pitch, &state.attitude.pitch)
@@ -328,9 +424,9 @@ LOG_ADD(LOG_FLOAT, vx, &state.velocity.x)
 LOG_ADD(LOG_FLOAT, vy, &state.velocity.y)
 LOG_ADD(LOG_FLOAT, vz, &state.velocity.z)
 
-// LOG_ADD(LOG_FLOAT, ax, &state.acc.x)
-// LOG_ADD(LOG_FLOAT, ay, &state.acc.y)
-// LOG_ADD(LOG_FLOAT, az, &state.acc.z)
+LOG_ADD(LOG_FLOAT, ax, &state.acc.x)
+LOG_ADD(LOG_FLOAT, ay, &state.acc.y)
+LOG_ADD(LOG_FLOAT, az, &state.acc.z)
 
 LOG_ADD(LOG_FLOAT, roll, &state.attitude.roll)
 LOG_ADD(LOG_FLOAT, pitch, &state.attitude.pitch)
@@ -340,8 +436,27 @@ LOG_ADD(LOG_FLOAT, qx, &state.attitudeQuaternion.x)
 LOG_ADD(LOG_FLOAT, qy, &state.attitudeQuaternion.y)
 LOG_ADD(LOG_FLOAT, qz, &state.attitudeQuaternion.z)
 LOG_ADD(LOG_FLOAT, qw, &state.attitudeQuaternion.w)
-
 LOG_GROUP_STOP(stateEstimate)
+
+LOG_GROUP_START(stateEstimateZ)
+LOG_ADD(LOG_INT16, x, &stateCompressed.x)                 // position - mm
+LOG_ADD(LOG_INT16, y, &stateCompressed.y)
+LOG_ADD(LOG_INT16, z, &stateCompressed.z)
+
+LOG_ADD(LOG_INT16, vx, &stateCompressed.vx)               // velocity - mm / sec
+LOG_ADD(LOG_INT16, vy, &stateCompressed.vy)
+LOG_ADD(LOG_INT16, vz, &stateCompressed.vz)
+
+LOG_ADD(LOG_INT16, ax, &stateCompressed.ax)               // acceleration - mm / sec^2
+LOG_ADD(LOG_INT16, ay, &stateCompressed.ay)
+LOG_ADD(LOG_INT16, az, &stateCompressed.az)
+
+LOG_ADD(LOG_UINT32, quat, &stateCompressed.quat)           // compressed quaternion, see quatcompress.h
+
+LOG_ADD(LOG_INT16, rateRoll, &stateCompressed.rateRoll)   // angular velocity - milliradians / sec
+LOG_ADD(LOG_INT16, ratePitch, &stateCompressed.ratePitch)
+LOG_ADD(LOG_INT16, rateYaw, &stateCompressed.rateYaw)
+LOG_GROUP_STOP(stateEstimateZ)
 
 LOG_GROUP_START(ctrlStat)
 LOG_ADD(LOG_FLOAT, edist, &error_dist_last)

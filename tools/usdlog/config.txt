@@ -1,17 +1,24 @@
-500
-50
-log
-1
-1
+500   # frequency
+50    # buffer size
+log   # file name
+1     # enable on startup (0/1)
+1     # mode (0: disabled, 1: synchronous stabilizer, 2: asynchronous)
 acc.x
 acc.y
 acc.z
 gyro.x
 gyro.y
 gyro.z
-stateEstimate.x
-stateEstimate.y
-stateEstimate.z
-stateEstimate.vx
-stateEstimate.vy
-stateEstimate.vz
+stateEstimateZ.x
+stateEstimateZ.y
+stateEstimateZ.z
+stateEstimateZ.vx
+stateEstimateZ.vy
+stateEstimateZ.vz
+stateEstimateZ.quat
+ctrltargetZ.x
+ctrltargetZ.y
+ctrltargetZ.z
+ctrltargetZ.vx
+ctrltargetZ.vy
+ctrltargetZ.vz

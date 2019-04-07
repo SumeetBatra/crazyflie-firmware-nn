@@ -50,20 +50,20 @@ plt.legend(loc=9, ncol=3, borderaxespad=0.)
 
 plotCurrent += 1
 plt.subplot(plotRows, plotCols, plotCurrent)
-plt.plot(logData['tick'], logData['stateEstimate.x'], '-', label='X')
-plt.plot(logData['tick'], logData['stateEstimate.y'], '-', label='Y')
-plt.plot(logData['tick'], logData['stateEstimate.z'], '-', label='Z')
+plt.plot(logData['tick'], logData['stateEstimateZ.x'], '-', label='X')
+plt.plot(logData['tick'], logData['stateEstimateZ.y'], '-', label='Y')
+plt.plot(logData['tick'], logData['stateEstimateZ.z'], '-', label='Z')
 plt.xlabel('RTOS Ticks')
-plt.ylabel('Position [m]')
+plt.ylabel('Position [mm]')
 plt.legend(loc=9, ncol=3, borderaxespad=0.)
 
 plotCurrent += 1
 plt.subplot(plotRows, plotCols, plotCurrent)
-plt.plot(logData['tick'], logData['stateEstimate.vx'], '-', label='X')
-plt.plot(logData['tick'], logData['stateEstimate.vy'], '-', label='Y')
-plt.plot(logData['tick'], logData['stateEstimate.vz'], '-', label='Z')
+plt.plot(logData['tick'], logData['stateEstimateZ.vx'], '-', label='X')
+plt.plot(logData['tick'], logData['stateEstimateZ.vy'], '-', label='Y')
+plt.plot(logData['tick'], logData['stateEstimateZ.vz'], '-', label='Z')
 plt.xlabel('RTOS Ticks')
-plt.ylabel('Velocity [m/s]')
+plt.ylabel('Velocity [mm/s]')
 plt.legend(loc=9, ncol=3, borderaxespad=0.)
 
 
