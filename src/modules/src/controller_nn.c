@@ -19,6 +19,7 @@ static bool enableBigQuad = false;
 static float maxThrustFactor = 0.70f;
 static bool relVel = true;
 static bool relOmega = true;
+static uint16_t freq = 500;
 
 static control_t_n control_n;
 static struct mat33 rot;
@@ -69,7 +70,7 @@ void controllerNN(control_t *control,
 				  const uint32_t tick)
 {
 	control->enableDirectThrust = true;
-	if (!RATE_DO_EXECUTE(/*RATE_100_HZ*/500, tick)) {
+	if (!RATE_DO_EXECUTE(/*RATE_100_HZ*/freq, tick)) {
 		return;
 	}
 
@@ -209,6 +210,7 @@ PARAM_GROUP_START(ctrlNN)
 PARAM_ADD(PARAM_FLOAT, max_thrust, &maxThrustFactor)
 PARAM_ADD(PARAM_UINT8, rel_vel, &relVel)
 PARAM_ADD(PARAM_UINT8, rel_omega, &relOmega)
+PARAM_ADD(PARAM_UINT16, freq, &freq)
 PARAM_GROUP_STOP(ctrlNN)
 
 LOG_GROUP_START(ctrlNN)

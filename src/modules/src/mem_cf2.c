@@ -45,6 +45,7 @@
 #include "locodeck.h"
 #include "crtp_commander_high_level.h"
 #include "usddeck.h"
+#include "network_evaluate.h"
 
 #include "console.h"
 #include "assert.h"
@@ -69,7 +70,8 @@
 #define LOCO_ID         0x02
 #define TRAJ_ID         0x03
 #define USDLOG_ID       0x04
-#define OW_FIRST_ID     0x05
+#define NN_ID           0x05
+#define OW_FIRST_ID     0x06
 
 #define STATUS_OK 0
 
@@ -79,6 +81,7 @@
 #define MEM_TYPE_LOCO   0x11
 #define MEM_TYPE_TRAJ   0x12
 #define MEM_TYPE_USDLOG 0x13
+#define MEM_TYPE_NN     0x14
 
 #define MEM_LOCO_INFO             0x0000
 #define MEM_LOCO_ANCHOR_BASE      0x1000
@@ -206,6 +209,9 @@ void createInfoResponse(CRTPPacket* p, uint8_t memId)
         createInfoResponseBody(p, MEM_TYPE_USDLOG, size, noData);
       }
       break;
+    case NN_ID:
+      createInfoResponseBody(p, MEM_TYPE_NN, sizeof(nn_desc), noData);
+      break;
     default:
       if (owGetinfo(memId - OW_FIRST_ID, &serialNbr))
       {
@@ -282,6 +288,17 @@ void memReadProcess()
       {
         uint32_t read = usddeckLastLoggingFileRead(&p.data[6], memAddr, readLen);
         status = read == readLen ? STATUS_OK : EIO;
+      }
+      break;
+	  
+    case NN_ID:
+      {
+        if (memAddr + readLen <= sizeof(nn_desc) &&
+            memcpy(&p.data[6], ((uint8_t*)&nn_desc) + memAddr, readLen)) {
+          status = STATUS_OK;
+        } else {
+          status = EIO;
+        }
       }
       break;
 
@@ -415,6 +432,17 @@ void memWriteProcess()
     case MEM_TYPE_USDLOG:
       // Not supported
       status = EIO;
+      break;
+	  
+    case NN_ID:
+      {
+        if ((memAddr + writeLen) <= sizeof(nn_desc)) {
+          memcpy(((uint8_t*)&nn_desc) + memAddr, &p.data[5], writeLen);
+          status = STATUS_OK;
+        } else {
+          status = EIO;
+        }
+      }
       break;
 
     default:
