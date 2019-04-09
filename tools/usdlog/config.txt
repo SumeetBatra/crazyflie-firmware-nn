@@ -22,3 +22,11 @@ ctrltargetZ.z
 ctrltargetZ.vx
 ctrltargetZ.vy
 ctrltargetZ.vz
+ctrltargetZ.quat
+viconZ.x
+viconZ.y
+viconZ.z
+viconZ.vx
+viconZ.vy
+viconZ.vz
+viconZ.quat
