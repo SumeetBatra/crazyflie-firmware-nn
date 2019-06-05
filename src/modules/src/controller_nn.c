@@ -24,7 +24,9 @@ static uint16_t freq = 500;
 
 static control_t_n control_n;
 static struct mat33 rot;
-static float state_array[18];
+static float cur_state_array[18];
+static float pre_state_array[18];
+static float state_array[36];
 // static float state_array[22];
 
 static uint32_t usec_eval;
@@ -90,56 +92,68 @@ void controllerNN(control_t *control,
 	// the state vector
 	// TODO: clip error?
 	// TODO: clip velocity?
-	state_array[0] = state->position.x - setpoint->position.x;
-	state_array[1] = state->position.y - setpoint->position.y;
-	state_array[2] = state->position.z - setpoint->position.z;
+	cur_state_array[0] = state->position.x - setpoint->position.x;
+	cur_state_array[1] = state->position.y - setpoint->position.y;
+	cur_state_array[2] = state->position.z - setpoint->position.z;
 	if (relVel) {
-		state_array[3] = state->velocity.x - setpoint->velocity.x;
-		state_array[4] = state->velocity.y - setpoint->velocity.y;
-		state_array[5] = state->velocity.z - setpoint->velocity.z;
+		cur_state_array[3] = state->velocity.x - setpoint->velocity.x;
+		cur_state_array[4] = state->velocity.y - setpoint->velocity.y;
+		cur_state_array[5] = state->velocity.z - setpoint->velocity.z;
 	} else {
-		state_array[3] = state->velocity.x;
-		state_array[4] = state->velocity.y;
-		state_array[5] = state->velocity.z;
+		cur_state_array[3] = state->velocity.x;
+		cur_state_array[4] = state->velocity.y;
+		cur_state_array[5] = state->velocity.z;
 	}
-	state_array[6] = rot.m[0][0];
-	state_array[7] = rot.m[0][1];
-	state_array[8] = rot.m[0][2];
-	state_array[9] = rot.m[1][0];
-	state_array[10] = rot.m[1][1];
-	state_array[11] = rot.m[1][2];
-	state_array[12] = rot.m[2][0];
-	state_array[13] = rot.m[2][1];
-	state_array[14] = rot.m[2][2];
+	cur_state_array[6] = rot.m[0][0];
+	cur_state_array[7] = rot.m[0][1];
+	cur_state_array[8] = rot.m[0][2];
+	cur_state_array[9] = rot.m[1][0];
+	cur_state_array[10] = rot.m[1][1];
+	cur_state_array[11] = rot.m[1][2];
+	cur_state_array[12] = rot.m[2][0];
+	cur_state_array[13] = rot.m[2][1];
+	cur_state_array[14] = rot.m[2][2];
 
 	if (relXYZ) {
 		// rotate pos and vel
-		struct vec rot_pos = mvmult(mtranspose(rot), mkvec(state_array[0], state_array[1], state_array[2]));
-		struct vec rot_vel = mvmult(mtranspose(rot), mkvec(state_array[3], state_array[4], state_array[5]));
+		struct vec rot_pos = mvmult(mtranspose(rot), mkvec(cur_state_array[0], cur_state_array[1], cur_state_array[2]));
+		struct vec rot_vel = mvmult(mtranspose(rot), mkvec(cur_state_array[3], cur_state_array[4], cur_state_array[5]));
 
-		state_array[0] = rot_pos.x;
-		state_array[1] = rot_pos.y;
-		state_array[2] = rot_pos.z;
+		cur_state_array[0] = rot_pos.x;
+		cur_state_array[1] = rot_pos.y;
+		cur_state_array[2] = rot_pos.z;
 
-		state_array[3] = rot_vel.x;
-		state_array[4] = rot_vel.y;
-		state_array[5] = rot_vel.z;
+		cur_state_array[3] = rot_vel.x;
+		cur_state_array[4] = rot_vel.y;
+		cur_state_array[5] = rot_vel.z;
 	}	
 
 	if (relOmega) {
-		state_array[15] = omega_roll - radians(setpoint->attitudeRate.roll);
-		state_array[16] = omega_pitch - radians(setpoint->attitudeRate.pitch);
-		state_array[17] = omega_yaw - radians(setpoint->attitudeRate.yaw);
+		cur_state_array[15] = omega_roll - radians(setpoint->attitudeRate.roll);
+		cur_state_array[16] = omega_pitch - radians(setpoint->attitudeRate.pitch);
+		cur_state_array[17] = omega_yaw - radians(setpoint->attitudeRate.yaw);
 	} else {
-		state_array[15] = omega_roll;
-		state_array[16] = omega_pitch;
-		state_array[17] = omega_yaw;
+		cur_state_array[15] = omega_roll;
+		cur_state_array[16] = omega_pitch;
+		cur_state_array[17] = omega_yaw;
 	}
 	// state_array[18] = control_n.thrust_0;
 	// state_array[19] = control_n.thrust_1;
 	// state_array[20] = control_n.thrust_2;
 	// state_array[21] = control_n.thrust_3;
 
+	// aggregate the previous time step state to the current state
+	for (int i = 0; i < 18; i++) {
+		state_array[i] = cur_state_array[i];
+	}
+	for (int i = 18; i < 36; i++) {
+		state_array[i] = pre_state_array[i-18];
+	}
+
+	// assign the current state to previous state
+	for (int i = 0; i < 18; i++) {
+		pre_state_array[i] = cur_state_array[i];
+	}
 
 	// run the neural neural network
 	uint64_t start = usecTimestamp();
