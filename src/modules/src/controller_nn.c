@@ -17,6 +17,7 @@
 static bool enableBigQuad = false;
 
 static float maxThrustFactor = 0.70f;
+static float t2w = 3.0;
 static bool relVel = true;
 static bool relOmega = true;
 static bool relXYZ = true;
@@ -24,7 +25,7 @@ static uint16_t freq = 500;
 
 static control_t_n control_n;
 static struct mat33 rot;
-static float state_array[18];
+static float state_array[19];
 // static float state_array[22];
 
 static uint32_t usec_eval;
@@ -135,6 +136,7 @@ void controllerNN(control_t *control,
 		state_array[16] = omega_pitch;
 		state_array[17] = omega_yaw;
 	}
+	state_array[18] = t2w;
 	// state_array[18] = control_n.thrust_0;
 	// state_array[19] = control_n.thrust_1;
 	// state_array[20] = control_n.thrust_2;
@@ -227,6 +229,7 @@ PARAM_ADD(PARAM_FLOAT, max_thrust, &maxThrustFactor)
 PARAM_ADD(PARAM_UINT8, rel_vel, &relVel)
 PARAM_ADD(PARAM_UINT8, rel_omega, &relOmega)
 PARAM_ADD(PARAM_UINT8, rel_xyz, &relXYZ)
+PARAM_ADD(PARAM_FLOAT, t2w, &t2w)
 PARAM_ADD(PARAM_UINT16, freq, &freq)
 PARAM_GROUP_STOP(ctrlNN)
 
