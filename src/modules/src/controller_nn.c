@@ -23,6 +23,7 @@ static bool relXYZ = true;
 static uint16_t freq = 500;
 
 static control_t_n control_n;
+static osi_out_n osi_out;
 static struct mat33 rot;
 static float state_array[18];
 // static float state_array[22];
@@ -140,6 +141,8 @@ void controllerNN(control_t *control,
 	// state_array[20] = control_n.thrust_2;
 	// state_array[21] = control_n.thrust_3;
 
+	// run the osi predcition
+	osi_predict(&osi_out, state_array, &control_n, tick);
 
 	// run the neural neural network
 	uint64_t start = usecTimestamp();
@@ -236,18 +239,22 @@ LOG_ADD(LOG_FLOAT, out1, &control_n.thrust_1)
 LOG_ADD(LOG_FLOAT, out2, &control_n.thrust_2)
 LOG_ADD(LOG_FLOAT, out3, &control_n.thrust_3)
 
-LOG_ADD(LOG_FLOAT, in0, &state_array[0])
-LOG_ADD(LOG_FLOAT, in1, &state_array[1])
-LOG_ADD(LOG_FLOAT, in2, &state_array[2])
+// LOG_ADD(LOG_FLOAT, in0, &state_array[0])
+// LOG_ADD(LOG_FLOAT, in1, &state_array[1])
+// LOG_ADD(LOG_FLOAT, in2, &state_array[2])
 
-LOG_ADD(LOG_FLOAT, in3, &state_array[3])
-LOG_ADD(LOG_FLOAT, in4, &state_array[4])
-LOG_ADD(LOG_FLOAT, in5, &state_array[5])
+// LOG_ADD(LOG_FLOAT, in3, &state_array[3])
+// LOG_ADD(LOG_FLOAT, in4, &state_array[4])
+// LOG_ADD(LOG_FLOAT, in5, &state_array[5])
 
-LOG_ADD(LOG_FLOAT, in15, &state_array[15])
-LOG_ADD(LOG_FLOAT, in16, &state_array[16])
-LOG_ADD(LOG_FLOAT, in17, &state_array[17])
+// LOG_ADD(LOG_FLOAT, in15, &state_array[15])
+// LOG_ADD(LOG_FLOAT, in16, &state_array[16])
+// LOG_ADD(LOG_FLOAT, in17, &state_array[17])
 
 LOG_ADD(LOG_UINT32, usec_eval, &usec_eval)
 
 LOG_GROUP_STOP(ctrlNN)
+
+LOG_GROUP_START(osi)
+LOG_ADD(LOG_FLOAT, t2w, &osi_out.t2w)
+LOG_GROUP_STOP(osi)

@@ -14,6 +14,12 @@ typedef struct control_t_n {
 	float thrust_3;	
 } control_t_n;
 
+float linear(float num);
+
+float sigmoid(float num);
+
+float relu(float num);
+
 void networkEvaluate(control_t_n *control_n, const float *state_array);
 
 #endif

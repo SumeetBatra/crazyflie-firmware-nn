@@ -4,6 +4,7 @@
 
 #include "stabilizer_types.h"
 #include "network_evaluate.h"
+#include "osi.h"
 
 void controllerNNInit(void);
 bool controllerNNTest(void);
