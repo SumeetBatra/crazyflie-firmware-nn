@@ -17,6 +17,7 @@
 static bool enableBigQuad = false;
 
 static float maxThrustFactor = 0.70f;
+static float t2w = 3.0;
 static bool relVel = true;
 static bool relOmega = true;
 static bool relXYZ = true;
@@ -25,8 +26,8 @@ static uint16_t freq = 500;
 static control_t_n control_n;
 static osi_out_n osi_out;
 static struct mat33 rot;
-static float state_array[18];
-// static float state_array[22];
+// static float state_array[18];
+static float state_array[19];
 
 static uint32_t usec_eval;
 
@@ -143,6 +144,7 @@ void controllerNN(control_t *control,
 
 	// run the osi predcition
 	osi_predict(&osi_out, state_array, &control_n, tick);
+	state_array[18] = t2w; // osi_out.t2w;
 
 	// run the neural neural network
 	uint64_t start = usecTimestamp();
