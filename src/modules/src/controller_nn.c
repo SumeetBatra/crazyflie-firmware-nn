@@ -18,9 +18,11 @@ static bool enableBigQuad = false;
 
 static float maxThrustFactor = 0.70f;
 static float t2w = 3.0;
+static float t2t = 0.005;
 static bool relVel = true;
 static bool relOmega = true;
 static bool relXYZ = true;
+static bool osi = true;
 static uint16_t freq = 500;
 
 static control_t_n control_n;
@@ -144,7 +146,13 @@ void controllerNN(control_t *control,
 
 	// run the osi predcition
 	osi_predict(&osi_out, state_array, &control_n, tick);
-	state_array[18] = t2w; // osi_out.t2w;
+	if (osi) {
+		state_array[18] = osi_out.t2w; 
+		// state_array[19] = osi_out.t2t;
+	} else {
+		state_array[18] = (t2w-1.5f)/2.0f;
+		// state_array[19] = t2t;
+	}
 
 	// run the neural neural network
 	uint64_t start = usecTimestamp();
@@ -232,6 +240,9 @@ PARAM_ADD(PARAM_FLOAT, max_thrust, &maxThrustFactor)
 PARAM_ADD(PARAM_UINT8, rel_vel, &relVel)
 PARAM_ADD(PARAM_UINT8, rel_omega, &relOmega)
 PARAM_ADD(PARAM_UINT8, rel_xyz, &relXYZ)
+PARAM_ADD(PARAM_UINT8, osi, &osi)
+PARAM_ADD(PARAM_FLOAT, t2w, &t2w)
+PARAM_ADD(PARAM_FLOAT, t2t, &t2t)
 PARAM_ADD(PARAM_UINT16, freq, &freq)
 PARAM_GROUP_STOP(ctrlNN)
 
@@ -259,4 +270,5 @@ LOG_GROUP_STOP(ctrlNN)
 
 LOG_GROUP_START(osi)
 LOG_ADD(LOG_FLOAT, t2w, &osi_out.t2w)
+LOG_ADD(LOG_FLOAT, t2t, &osi_out.t2t)
 LOG_GROUP_STOP(osi)
