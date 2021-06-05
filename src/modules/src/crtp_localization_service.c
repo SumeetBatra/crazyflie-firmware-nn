@@ -48,6 +48,8 @@
 #include "peer_localization.h"
 
 #include "num.h"
+#include "estimator_kalman.h"
+#include "position_external.h"
 
 #define NBR_OF_RANGES_IN_PACKET   5
 #define NBR_OF_SWEEPS_IN_PACKET   2
@@ -114,6 +116,7 @@ static CRTPPacket LhAngle;
 static bool enableLighthouseAngleStream = false;
 static float extPosStdDev = 0.01;
 static float extQuatStdDev = 4.5e-3;
+static float extPosStdDev = 0.01;
 static bool isInit = false;
 static uint8_t my_id;
 static uint16_t tickOfLastPacket; // tick when last packet was received
@@ -372,6 +375,8 @@ LOG_GROUP_START(locSrvZ)
 LOG_GROUP_STOP(locSrvZ)
 
 PARAM_GROUP_START(locSrv)
+  PARAM_ADD(PARAM_UINT8, enRangeStreamFP32, &enableRangeStreamFloat)
+  PARAM_ADD(PARAM_FLOAT, extPosStdDev, &extPosStdDev)
   PARAM_ADD(PARAM_UINT8, enRangeStreamFP32, &enableRangeStreamFloat)
   PARAM_ADD(PARAM_UINT8, enLhAngleStream, &enableLighthouseAngleStream)
   PARAM_ADD(PARAM_FLOAT, extPosStdDev, &extPosStdDev)

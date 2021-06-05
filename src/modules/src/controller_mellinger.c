@@ -74,6 +74,9 @@ static float i_range_m_z  = 1500;
 // roll and pitch angular velocity
 static float kd_omega_rp = 200; // D
 
+static float e_bound_pos = 0.5;
+static float e_bound_vel = 0.5;
+
 
 // Helper variables
 static float i_error_x = 0;
@@ -91,6 +94,10 @@ static float i_error_m_z = 0;
 
 // Logging variables
 static struct vec z_axis_desired;
+static float roll_desired; // deg
+static float pitch_desired; // deg
+static struct vec r_error;
+static struct vec v_error;
 
 static float cmd_thrust;
 static float cmd_roll;
@@ -126,8 +133,8 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
                                          const state_t *state,
                                          const uint32_t tick)
 {
-  struct vec r_error;
-  struct vec v_error;
+  // struct vec r_error;
+  // struct vec v_error;
   struct vec target_thrust;
   struct vec z_axis;
   float current_thrust;
@@ -138,11 +145,11 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
   float dt;
   float desiredYaw = 0; //deg
 
-  if (!RATE_DO_EXECUTE(ATTITUDE_RATE, tick)) {
+  if (!RATE_DO_EXECUTE(RATE_500_HZ, tick)) {
     return;
   }
 
-  dt = (float)(1.0f/ATTITUDE_RATE);
+  dt = (float)(1.0f/RATE_500_HZ);
   struct vec setpointPos = mkvec(setpoint->position.x, setpoint->position.y, setpoint->position.z);
   struct vec setpointVel = mkvec(setpoint->velocity.x, setpoint->velocity.y, setpoint->velocity.z);
   struct vec statePos = mkvec(state->position.x, state->position.y, state->position.z);
@@ -150,9 +157,17 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
 
   // Position Error (ep)
   r_error = vsub(setpointPos, statePos);
+  // limit position error
+  if (vmag(r_error) > e_bound_pos) {
+    r_error = vscl(e_bound_pos, vnormalize(r_error));
+  }
 
   // Velocity Error (ev)
   v_error = vsub(setpointVel, stateVel);
+  // limit velocity error
+  if (vmag(v_error) > e_bound_vel) {
+    v_error = vscl(e_bound_vel, vnormalize(v_error));
+  }
 
   // Integral Error
   i_error_z += r_error.z * dt;
@@ -222,6 +237,9 @@ void controllerMellinger(control_t *control, setpoint_t *setpoint,
   y_axis_desired = vnormalize(vcross(z_axis_desired, x_c_des));
   // [xB_des]
   x_axis_desired = vcross(y_axis_desired, z_axis_desired);
+
+  pitch_desired = degrees(asinf(-x_axis_desired.z));
+  roll_desired  = degrees(atan2f(y_axis_desired.z, z_axis_desired.z));
 
   // [eR]
   // Slow version
@@ -341,6 +359,8 @@ PARAM_ADD(PARAM_FLOAT, ki_m_z, &ki_m_z)
 PARAM_ADD(PARAM_FLOAT, kd_omega_rp, &kd_omega_rp)
 PARAM_ADD(PARAM_FLOAT, i_range_m_xy, &i_range_m_xy)
 PARAM_ADD(PARAM_FLOAT, i_range_m_z, &i_range_m_z)
+PARAM_ADD(PARAM_FLOAT, e_bound_pos, &e_bound_pos)
+PARAM_ADD(PARAM_FLOAT, e_bound_vel, &e_bound_vel)
 PARAM_GROUP_STOP(ctrlMel)
 
 LOG_GROUP_START(ctrlMel)
@@ -358,4 +378,16 @@ LOG_ADD(LOG_FLOAT, zdz, &z_axis_desired.z)
 LOG_ADD(LOG_FLOAT, i_err_x, &i_error_x)
 LOG_ADD(LOG_FLOAT, i_err_y, &i_error_y)
 LOG_ADD(LOG_FLOAT, i_err_z, &i_error_z)
+LOG_ADD(LOG_FLOAT, rolld, &roll_desired)
+LOG_ADD(LOG_FLOAT, pitchd, &pitch_desired)
 LOG_GROUP_STOP(ctrlMel)
+
+LOG_GROUP_START(stateError)
+LOG_ADD(LOG_FLOAT, x, &r_error.x)
+LOG_ADD(LOG_FLOAT, y, &r_error.y)
+LOG_ADD(LOG_FLOAT, z, &r_error.z)
+LOG_ADD(LOG_FLOAT, vx, &v_error.x)
+LOG_ADD(LOG_FLOAT, vy, &v_error.y)
+LOG_ADD(LOG_FLOAT, vz, &v_error.z)
+// LOG_ADD(LOG_FLOAT, zdy, &z_axis_desired.y)
+LOG_GROUP_STOP(stateError)

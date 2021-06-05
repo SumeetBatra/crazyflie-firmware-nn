@@ -97,6 +97,8 @@ static float yaw; // last known setpoint yaw (yaw [rad])
 static struct piecewise_traj trajectory;
 static struct piecewise_traj_compressed  compressed_trajectory;
 
+static uint32_t numCmdsRcvd;
+
 // makes sure that we don't evaluate the trajectory while it is being changed
 static xSemaphoreHandle lockTraj;
 static StaticSemaphore_t lockTrajBuffer;
@@ -454,6 +456,7 @@ int takeoff_with_velocity(const struct data_takeoff_with_velocity* data)
     float velocity = data->velocity > 0 ? data->velocity : defaultTakeoffVelocity;
     float duration = fabsf(height - pos.z) / velocity;
     result = plan_takeoff(&planner, pos, yaw, height, hover_yaw, duration, t);
+    numCmdsRcvd += 1;
     xSemaphoreGive(lockTraj);
   }
   return result;
@@ -819,3 +822,8 @@ PARAM_GROUP_START(hlCommander)
 PARAM_ADD(PARAM_FLOAT, vtoff, &defaultTakeoffVelocity)
 PARAM_ADD(PARAM_FLOAT, vland, &defaultLandingVelocity)
 PARAM_GROUP_STOP(hlCommander)
+
+LOG_GROUP_START(chlDbg)
+LOG_ADD(LOG_UINT32, numCmdsRcvd, &numCmdsRcvd)
+LOG_ADD(LOG_UINT8, state, &planner.state)
+LOG_GROUP_STOP(chlDbg)
