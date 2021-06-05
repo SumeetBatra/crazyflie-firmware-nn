@@ -48,6 +48,8 @@
 #include "peer_localization.h"
 
 #include "num.h"
+#include "estimator_kalman.h"
+#include "position_external.h"
 
 #define NBR_OF_RANGES_IN_PACKET   5
 #define NBR_OF_SWEEPS_IN_PACKET   2
@@ -114,6 +116,7 @@ static CRTPPacket LhAngle;
 static bool enableLighthouseAngleStream = false;
 static float extPosStdDev = 0.01;
 static float extQuatStdDev = 4.5e-3;
+static float extPosStdDev = 0.01;
 static bool isInit = false;
 static uint8_t my_id;
 static uint16_t tickOfLastPacket; // tick when last packet was received
@@ -383,45 +386,45 @@ LOG_GROUP_STOP(ext_pos)
 
 /**
  * Logging variables for (external) positioning data stream through ctrp
- */ 
+ */
 LOG_GROUP_START(locSrv)
 /**
- * @brief Position X measurement from external system 
- */ 
+ * @brief Position X measurement from external system
+ */
   LOG_ADD_CORE(LOG_FLOAT, x, &ext_pose.x)
 /**
- * @brief Position Y measurement from external system 
- */ 
+ * @brief Position Y measurement from external system
+ */
   LOG_ADD_CORE(LOG_FLOAT, y, &ext_pose.y)
 /**
  * @brief Position Z measurement from external system
- */ 
+ */
   LOG_ADD_CORE(LOG_FLOAT, z, &ext_pose.z)
 /**
  * @brief Quaternion x meas from an external system
- */ 
+ */
   LOG_ADD_CORE(LOG_FLOAT, qx, &ext_pose.quat.x)
 /**
  * @brief Quaternion y meas from an external system
- */ 
+ */
   LOG_ADD_CORE(LOG_FLOAT, qy, &ext_pose.quat.y)
 /**
  * @brief Quaternion z meas from an external system
- */ 
+ */
   LOG_ADD_CORE(LOG_FLOAT, qz, &ext_pose.quat.z)
 /**
  * @brief Quaternion w meas from an external system
- */ 
+ */
   LOG_ADD_CORE(LOG_FLOAT, qw, &ext_pose.quat.w)
 LOG_GROUP_STOP(locSrv)
 
 /**
  * Logging variables for (external) positioning data stream through Compressed
- */ 
+ */
 LOG_GROUP_START(locSrvZ)
 /**
  * @brief time when data was received last (ms/ticks)
- */ 
+ */
   LOG_ADD_CORE(LOG_UINT16, tick, &tickOfLastPacket)  // time when data was received last (ms/ticks)
 LOG_GROUP_STOP(locSrvZ)
 
@@ -445,4 +448,10 @@ PARAM_GROUP_START(locSrv)
  * @brief Standard deviation of the quarternion data to kalman filter
  */
   PARAM_ADD_CORE(PARAM_FLOAT, extQuatStdDev, &extQuatStdDev)
+  PARAM_ADD(PARAM_UINT8, enRangeStreamFP32, &enableRangeStreamFloat)
+  PARAM_ADD(PARAM_FLOAT, extPosStdDev, &extPosStdDev)
+  PARAM_ADD(PARAM_UINT8, enRangeStreamFP32, &enableRangeStreamFloat)
+  PARAM_ADD(PARAM_UINT8, enLhAngleStream, &enableLighthouseAngleStream)
+  PARAM_ADD(PARAM_FLOAT, extPosStdDev, &extPosStdDev)
+  PARAM_ADD(PARAM_FLOAT, extQuatStdDev, &extQuatStdDev)
 PARAM_GROUP_STOP(locSrv)

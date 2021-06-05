@@ -34,6 +34,7 @@ typedef enum {
 #ifdef OOT_ESTIMATOR
   OutOfTreeEstimator,
 #endif
+  kalmanUSCEstimator,
   StateEstimatorTypeCount,
 } StateEstimatorType;
 

@@ -20,6 +20,7 @@ PYTHON            ?= python3
 DFU_UTIL          ?= dfu-util
 CLOAD             ?= 1
 DEBUG             ?= 0
+LTO               ?= 0
 CLOAD_SCRIPT      ?= python3 -m cfloader
 CLOAD_CMDS        ?=
 CLOAD_ARGS        ?=
@@ -177,7 +178,7 @@ PROJ_OBJ += crtp_commander_generic.o crtp_localization_service.o peer_localizati
 PROJ_OBJ += attitude_pid_controller.o sensfusion6.o stabilizer.o
 PROJ_OBJ += position_estimator_altitude.o position_controller_pid.o position_controller_indi.o
 PROJ_OBJ += estimator.o estimator_complementary.o
-PROJ_OBJ += controller.o controller_pid.o controller_mellinger.o controller_indi.o
+PROJ_OBJ += controller.o controller_pid.o controller_mellinger.o controller_indi.o controller_nn.o network_evaluate.o
 PROJ_OBJ += power_distribution_$(POWER_DISTRIBUTION).o
 PROJ_OBJ += collision_avoidance.o health.o
 
@@ -188,6 +189,10 @@ PROJ_OBJ += mm_tdoa_robust.o mm_distance_robust.o
 
 # High-Level Commander
 PROJ_OBJ += crtp_commander_high_level.o planner.o pptraj.o pptraj_compressed.o
+
+# Crazyswarm
+PROJ_OBJ += position_external.o
+PROJ_OBJ += estimator_kalmanUSC.o ekf.o
 
 # Deck Core
 PROJ_OBJ += deck.o deck_info.o deck_drivers.o deck_test.o deck_memory.o

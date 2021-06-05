@@ -7,7 +7,7 @@
  *
  * Crazyflie control firmware
  *
- * Copyright (C) 2011-2016 Bitcraze AB
+ * Copyright (C) 2016 Bitcraze AB
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,29 +21,37 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * controller.h - Controller interface
+ *
  */
-#ifndef __CONTROLLER_H__
-#define __CONTROLLER_H__
+#ifndef POSITION_EXTERNAL_H_
+#define POSITION_EXTERNAL_H_
 
-#include "stabilizer_types.h"
+#include <stdint.h>
+#include "math3d.h"
 
-typedef enum {
-  ControllerTypeAny,
-  ControllerTypePID,
-  ControllerTypeMellinger,
-  ControllerTypeINDI,
-  ControllerTypeNN,
-  ControllerType_COUNT,
-} ControllerType;
+void positionExternalInit(void);
+bool positionExternalTest(void);
 
-void controllerInit(ControllerType controller);
-bool controllerTest(void);
-void controller(control_t *control, setpoint_t *setpoint,
-                                         const sensorData_t *sensors,
-                                         const state_t *state,
-                                         const uint32_t tick);
-ControllerType getControllerType(void);
-const char* controllerGetName();
+void positionExternalGetLastData(
+  float* x,
+  float* y,
+  float* z,
+  float* q0,
+  float* q1,
+  float* q2,
+  float* q3,
+  float* vx,
+  float* vy,
+  float* vz,
+  uint16_t* last_time_in_ms);
 
-#endif //__CONTROLLER_H__
+void positionExternalUpdateDt();
+
+extern bool positionExternalFresh;
+extern bool positionExternalFresh2;
+
+// position of the "interactive object" i.e. in "avoid human" demo
+typedef void (*positionInteractiveCallback)(struct vec const *, struct quat const *);
+void setPositionInteractiveCallback(positionInteractiveCallback cb);
+
+#endif /* POSITION_EXTERNAL_H_ */

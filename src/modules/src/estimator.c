@@ -9,6 +9,7 @@
 #include "estimator.h"
 #include "estimator_complementary.h"
 #include "estimator_kalman.h"
+#include "estimator_kalmanUSC.h"
 #include "log.h"
 #include "statsCnt.h"
 #include "eventtrigger.h"
