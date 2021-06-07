@@ -64,7 +64,6 @@ void commInit(void)
   logInit();
   paramInit();
   locSrvInit();
-  positionExternalInit();
 
   //setup CRTP communication channel
   //TODO: check for USB first and prefer USB over radio

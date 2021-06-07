@@ -14,3 +14,6 @@
 	path = vendor/FreeRTOS
 	url = https://github.com/FreeRTOS/FreeRTOS-Kernel
 	branch = V10.2.1-convergence-FreeRTOS-Source
+[submodule "448a0efde42a258139cc8ca61fe53ff3bb4a9b94"]
+	path = 448a0efde42a258139cc8ca61fe53ff3bb4a9b94
+	url = https://github.com/bitcraze/libdw1000.git

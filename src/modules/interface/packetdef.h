@@ -29,9 +29,6 @@
                  centralized so it can be shared between server and vehicle.
  */
 
-enum trajectory_type {
-  TRAJECTORY_FIGURE8 = 0,
-};
 
 
 // hacks on hacks on hacks - should be fixed to do this in swig interface file
