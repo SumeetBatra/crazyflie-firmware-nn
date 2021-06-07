@@ -35,6 +35,7 @@
 #include "ow.h"
 #include "crc.h"
 #include "debug.h"
+#include "static_mem.h"
 
 #ifdef DEBUG
   #define DECK_INFO_DBG_PRINT(fmt, ...)  DEBUG_PRINT(fmt, ## __VA_ARGS__)
@@ -43,7 +44,7 @@
 #endif
 
 static int count = 0;
-static DeckInfo deckInfos[DECK_MAX_COUNT];
+NO_DMA_CCM_SAFE_ZERO_INIT static DeckInfo deckInfos[DECK_MAX_COUNT];
 
 static void enumerateDecks(void);
 static void checkPeriphAndGpioConflicts(void);
@@ -176,40 +177,38 @@ static bool infoDecode(DeckInfo * info)
 static void enumerateDecks(void)
 {
   uint8_t nDecks = 0;
-  int i;
-  // bool noError = true;
-  uint8_t deckIdx = 0;
+  bool noError = true;
 
   owInit();
 
   if (owScan(&nDecks))
   {
-    DEBUG_PRINT("Found %d deck memor%s.\n", nDecks, nDecks>1?"ies":"y");
+    DECK_INFO_DBG_PRINT("Found %d deck memor%s.\n", nDecks, nDecks>1?"ies":"y");
   } else {
     DEBUG_PRINT("Error scanning for deck memories, "
                 "no deck drivers will be initialised\n");
     nDecks = 0;
   }
 
-  for (i = 0; i < nDecks; i++)
+#ifndef IGNORE_OW_DECKS
+  for (int i = 0; i < nDecks; i++)
   {
     DECK_INFO_DBG_PRINT("Enumerating deck %i\n", i);
-    if (owRead(i, 0, sizeof(deckInfos[0].raw), (uint8_t *)&deckInfos[deckIdx]))
+    if (owRead(i, 0, sizeof(deckInfos[0].raw), (uint8_t *)&deckInfos[i]))
     {
-      if (infoDecode(&deckInfos[deckIdx]))
+      if (infoDecode(&deckInfos[i]))
       {
-        deckInfos[deckIdx].driver = findDriver(&deckInfos[deckIdx]);
-        printDeckInfo(&deckInfos[deckIdx]);
-        deckIdx++;
+        deckInfos[i].driver = findDriver(&deckInfos[i]);
+        printDeckInfo(&deckInfos[i]);
       } else {
 #ifdef DEBUG
         DEBUG_PRINT("Deck %i has corrupt OW memory. "
                     "Ignoring the deck in DEBUG mode.\n", i);
-        // deckInfos[].driver = &dummyDriver;
+        deckInfos[i].driver = &dummyDriver;
 #else
         DEBUG_PRINT("Deck %i has corrupt OW memory. "
                     "No driver will be initialized!\n", i);
-        // noError = false;
+        noError = false;
 #endif
       }
     }
@@ -217,30 +216,47 @@ static void enumerateDecks(void)
     {
       DEBUG_PRINT("Reading deck nr:%d [FAILED]. "
                   "No driver will be initialized!\n", i);
-      // noError = false;
+      noError = false;
     }
   }
+#else
+  DEBUG_PRINT("Ignoring all OW decks because of compile flag.\n");
+  nDecks = 0;
+#endif
 
   // Add build-forced driver
   if (strlen(deck_force) > 0) {
-    const DeckDriver *driver = deckFindDriverByName(deck_force);
-    if (!driver) {
-      DEBUG_PRINT("WARNING: compile-time forced driver %s not found\n", deck_force);
-    } else if (driver->init) {
-      if (deckIdx <= DECK_MAX_COUNT)
-      {
-        deckIdx++;
-        deckInfos[deckIdx - 1].driver = driver;
-        DEBUG_PRINT("compile-time forced driver %s added\n", deck_force);
-      } else {
-        DEBUG_PRINT("WARNING: No room for compile-time forced driver\n");
+    DEBUG_PRINT("DECK_FORCE=%s found\n", deck_force);
+  	//split deck_force into multiple, separated by colons, if available
+    char delim[] = ":";
+
+    char temp_deck_force[strlen(deck_force) + 1];
+    strcpy(temp_deck_force, deck_force);
+    char * token = strtok(temp_deck_force, delim);
+
+    while (token) {
+      deck_force = token;
+
+      const DeckDriver *driver = deckFindDriverByName(deck_force);
+      if (!driver) {
+        DEBUG_PRINT("WARNING: compile-time forced driver %s not found\n", deck_force);
+      } else if (driver->init || driver->test) {
+        if (nDecks <= DECK_MAX_COUNT)
+        {
+          nDecks++;
+          deckInfos[nDecks - 1].driver = driver;
+          DEBUG_PRINT("compile-time forced driver %s added\n", deck_force);
+        } else {
+          DEBUG_PRINT("WARNING: No room for compile-time forced driver\n");
+        }
       }
+      token = strtok(NULL, delim);
     }
   }
 
-  // if (noError) {
-    count = deckIdx;
-  // }
+  if (noError) {
+    count = nDecks;
+  }
 
   return;
 }

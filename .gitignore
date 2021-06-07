@@ -4,6 +4,7 @@ build_info.json
 bin/*
 .cproject
 .project
+.pydevproject
 .settings/*
 .vscode/*
 *~
@@ -13,7 +14,13 @@ version.c
 tags
 
 /cf2.*
-/cf1.*
+/tag.*
 *.gch
 
+current_platform.mk
+
 /generated-test/**
+**/__pycache__/**
+
+/docs/.jekyll-metadata
+docs/.jekyll-cache

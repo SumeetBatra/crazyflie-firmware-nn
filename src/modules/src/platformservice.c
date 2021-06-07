@@ -36,12 +36,15 @@
 #include "platformservice.h"
 #include "syslink.h"
 #include "version.h"
+#include "platform.h"
+#include "app_channel.h"
 
 static bool isInit=false;
 
 typedef enum {
   platformCommand   = 0x00,
   versionCommand    = 0x01,
+  appChannel        = 0x02,
 } Channel;
 
 typedef enum {
@@ -51,6 +54,7 @@ typedef enum {
 typedef enum {
   getProtocolVersion = 0x00,
   getFirmwareVersion = 0x01,
+  getDeviceTypeName  = 0x02,
 } VersionCommand;
 
 void platformserviceHandler(CRTPPacket *p);
@@ -61,6 +65,8 @@ void platformserviceInit(void)
 {
   if (isInit)
     return;
+
+  appchannelInit();
 
   // Register a callback to service the Platform port
   crtpRegisterPortCB(CRTP_PORT_PLATFORM, platformserviceHandler);
@@ -83,6 +89,10 @@ void platformserviceHandler(CRTPPacket *p)
       break;
     case versionCommand:
       versionCommandProcess(p);
+      break;
+    case appChannel:
+      appchannelIncomingPacket(p);
+      break;
     default:
       break;
   }
@@ -104,6 +114,13 @@ static void platformCommandProcess(uint8_t command, uint8_t *data)
   }
 }
 
+void platformserviceSendAppchannelPacket(CRTPPacket *p)
+{
+  p->port = CRTP_PORT_PLATFORM;
+  p->channel = appChannel;
+  crtpSendPacket(p);
+}
+
 static void versionCommandProcess(CRTPPacket *p)
 {
   switch (p->data[0]) {
@@ -116,6 +133,14 @@ static void versionCommandProcess(CRTPPacket *p)
       strncpy((char*)&p->data[1], V_STAG, CRTP_MAX_DATA_SIZE-1);
       p->size = (strlen(V_STAG)>CRTP_MAX_DATA_SIZE-1)?CRTP_MAX_DATA_SIZE:strlen(V_STAG)+1;
       crtpSendPacket(p);
+      break;
+    case getDeviceTypeName:
+      {
+      const char* name = platformConfigGetDeviceTypeName();
+      strncpy((char*)&p->data[1], name, CRTP_MAX_DATA_SIZE-1);
+      p->size = (strlen(name)>CRTP_MAX_DATA_SIZE-1)?CRTP_MAX_DATA_SIZE:strlen(name)+1;
+      crtpSendPacket(p);
+      }
       break;
     default:
       break;

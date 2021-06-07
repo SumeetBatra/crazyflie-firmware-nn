@@ -23,13 +23,17 @@
  *
  * power_distribution_stock.c - Crazyflie stock power distribution code
  */
+#define DEBUG_MODULE "PWR_DIST"
+
 #include "power_distribution.h"
 
+#include <string.h>
 #include "log.h"
 #include "param.h"
 #include "num.h"
-
+#include "platform.h"
 #include "motors.h"
+#include "debug.h"
 
 static bool motorSetEnable = false;
 
@@ -47,9 +51,15 @@ static struct {
   uint16_t m4;
 } motorPowerSet;
 
+#ifndef DEFAULT_IDLE_THRUST
+#define DEFAULT_IDLE_THRUST 0
+#endif
+
+static uint32_t idleThrust = DEFAULT_IDLE_THRUST;
+
 void powerDistributionInit(void)
 {
-  motorsInit(motorMapDefaultBrushed);
+  motorsInit(platformConfigGetMotorMapping());
 }
 
 bool powerDistributionTest(void)
@@ -70,7 +80,6 @@ void powerStop()
   motorsSetRatio(MOTOR_M3, 0);
   motorsSetRatio(MOTOR_M4, 0);
 }
-
 
 void powerDistribution(const control_t *control)
 {
@@ -101,22 +110,23 @@ void powerDistribution(const control_t *control)
   }
   else
   {
-    if (!control->enableDirectThrust) {
-      motorsSetRatio(MOTOR_M1, motorPower.m1);
-      motorsSetRatio(MOTOR_M2, motorPower.m2);
-      motorsSetRatio(MOTOR_M3, motorPower.m3);
-      motorsSetRatio(MOTOR_M4, motorPower.m4);
-    } else {
-      motorPower.m1 = control->motorRatios[0];
-      motorPower.m2 = control->motorRatios[1];
-      motorPower.m3 = control->motorRatios[2];
-      motorPower.m4 = control->motorRatios[3];
-
-      motorsSetRatio(MOTOR_M1, control->motorRatios[0]);
-      motorsSetRatio(MOTOR_M2, control->motorRatios[1]);
-      motorsSetRatio(MOTOR_M3, control->motorRatios[2]);
-      motorsSetRatio(MOTOR_M4, control->motorRatios[3]);
+    if (motorPower.m1 < idleThrust) {
+      motorPower.m1 = idleThrust;
     }
+    if (motorPower.m2 < idleThrust) {
+      motorPower.m2 = idleThrust;
+    }
+    if (motorPower.m3 < idleThrust) {
+      motorPower.m3 = idleThrust;
+    }
+    if (motorPower.m4 < idleThrust) {
+      motorPower.m4 = idleThrust;
+    }
+
+    motorsSetRatio(MOTOR_M1, motorPower.m1);
+    motorsSetRatio(MOTOR_M2, motorPower.m2);
+    motorsSetRatio(MOTOR_M3, motorPower.m3);
+    motorsSetRatio(MOTOR_M4, motorPower.m4);
   }
 }
 
@@ -126,11 +136,15 @@ PARAM_ADD(PARAM_UINT16, m1, &motorPowerSet.m1)
 PARAM_ADD(PARAM_UINT16, m2, &motorPowerSet.m2)
 PARAM_ADD(PARAM_UINT16, m3, &motorPowerSet.m3)
 PARAM_ADD(PARAM_UINT16, m4, &motorPowerSet.m4)
-PARAM_GROUP_STOP(ring)
+PARAM_GROUP_STOP(motorPowerSet)
+
+PARAM_GROUP_START(powerDist)
+PARAM_ADD(PARAM_UINT32, idleThrust, &idleThrust)
+PARAM_GROUP_STOP(powerDist)
 
 LOG_GROUP_START(motor)
-LOG_ADD(LOG_INT32, m4, &motorPower.m4)
-LOG_ADD(LOG_INT32, m1, &motorPower.m1)
-LOG_ADD(LOG_INT32, m2, &motorPower.m2)
-LOG_ADD(LOG_INT32, m3, &motorPower.m3)
+LOG_ADD(LOG_UINT32, m1, &motorPower.m1)
+LOG_ADD(LOG_UINT32, m2, &motorPower.m2)
+LOG_ADD(LOG_UINT32, m3, &motorPower.m3)
+LOG_ADD(LOG_UINT32, m4, &motorPower.m4)
 LOG_GROUP_STOP(motor)

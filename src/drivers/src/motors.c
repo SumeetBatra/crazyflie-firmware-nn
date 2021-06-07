@@ -25,6 +25,7 @@
  *
  * This code mainly interfacing the PWM peripheral lib of ST.
  */
+#define DEBUG_MODULE "MTR-DRV"
 
 #include <stdbool.h>
 
@@ -33,6 +34,7 @@
 
 #include "motors.h"
 #include "pm.h"
+#include "debug.h"
 
 //FreeRTOS includes
 #include "task.h"
@@ -57,7 +59,7 @@ const MotorPerifDef** motorMap;  /* Current map configuration */
 
 const uint32_t MOTORS[] = { MOTOR_M1, MOTOR_M2, MOTOR_M3, MOTOR_M4 };
 
-static const uint16_t testsound[NBR_OF_MOTORS] = {A4, A5, F5, D5 };
+const uint16_t testsound[NBR_OF_MOTORS] = {A4, A5, F5, D5 };
 
 static bool isInit = false;
 
@@ -102,11 +104,26 @@ void motorsInit(const MotorPerifDef** motorMapSelect)
 
   motorMap = motorMapSelect;
 
+  DEBUG_PRINT("Using %s motor driver\n", motorMap[0]->drvType == BRUSHED ? "brushed" : "brushless");
+
   for (i = 0; i < NBR_OF_MOTORS; i++)
   {
     //Clock the gpio and the timers
     MOTORS_RCC_GPIO_CMD(motorMap[i]->gpioPerif, ENABLE);
+    MOTORS_RCC_GPIO_CMD(motorMap[i]->gpioPowerswitchPerif, ENABLE);
     MOTORS_RCC_TIM_CMD(motorMap[i]->timPerif, ENABLE);
+
+    // If there is a power switch, as on Bolt, enable power to ESC by
+    // switching on mosfet.
+    if (motorMap[i]->gpioPowerswitchPin != 0)
+    {
+      GPIO_StructInit(&GPIO_InitStructure);
+      GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+      GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+      GPIO_InitStructure.GPIO_Pin = motorMap[i]->gpioPowerswitchPin;
+      GPIO_Init(motorMap[i]->gpioPowerswitchPort, &GPIO_InitStructure);
+      GPIO_WriteBit(motorMap[i]->gpioPowerswitchPort, motorMap[i]->gpioPowerswitchPin, 1);
+    }
 
     // Configure the GPIO for the timer output
     GPIO_StructInit(&GPIO_InitStructure);
@@ -150,6 +167,12 @@ void motorsInit(const MotorPerifDef** motorMapSelect)
   }
 
   isInit = true;
+
+  // Output zero power
+  motorsSetRatio(MOTOR_M1, 0);
+  motorsSetRatio(MOTOR_M2, 0);
+  motorsSetRatio(MOTOR_M3, 0);
+  motorsSetRatio(MOTOR_M4, 0);
 }
 
 void motorsDeInit(const MotorPerifDef** motorMapSelect)
@@ -248,15 +271,6 @@ int motorsGetRatio(uint32_t id)
   return ratio;
 }
 
-/* Set PWM frequency for motor controller
- * This function will set all motors into a "beep"-mode,
- * each of the motor will turned on with a given ratio and frequency.
- * The higher the ratio the higher the given power to the motors.
- * ATTENTION: To much ratio can push your crazyflie into the air and hurt you!
- * Example:
- *     motorsBeep(true, 1000, (uint16_t)(72000000L / frequency)/ 20);
- *     motorsBeep(false, 0, 0); *
- * */
 void motorsBeep(int id, bool enable, uint16_t frequency, uint16_t ratio)
 {
   TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
